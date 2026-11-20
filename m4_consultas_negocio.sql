@@ -1,13 +1,13 @@
-USE Ventas_Tech_DB
+USE Ventas_Tech_DB;
 
 --Consulta 1 - Resumen ejecutivo mensual Total facturado, cantidad de pedidos y ticket promedio, agrupados por mes. 
 
-SELECT * FROM ventas
 
 SELECT 
 SUM(precio_unitario*cantidad) AS total_facturado, 
-SUM(cantidad) AS cantidad_pedidos,
-AVG(precio_unitario*cantidad) AS ticket_promedio
+COUNT(*) AS cantidad_pedidos,
+AVG(precio_unitario*cantidad) AS ticket_promedio,
+MONTH(fecha_venta) AS mes
 FROM ventas
 GROUP BY MONTH(fecha_venta);
 
@@ -25,22 +25,19 @@ ORDER BY (total_facturado) DESC;
 
 SELECT 
 id_cliente,
-SUM(cantidad) AS cantidad_pedidos,
+COUNT(*) AS cantidad_pedidos,
 SUM(cantidad*precio_unitario) AS total_gastado
 FROM ventas
 GROUP BY id_cliente
 HAVING COUNT(*) > 1;
 
 
---Consulta 4 — Productos por encima/por debajo del promedio Total facturado por id_producto, con una columna adicional que etiquete con CASE WHEN 
---si ese producto quedó 'Por encima' o 'Por debajo' del promedio de facturación por producto. 
---Ojo: es el promedio de los totales por producto, no el promedio de las filas de ventas. Resolvelo con WITH y una subconsulta, como en el ejemplo 
---de meses de la unidad "Ordenar, resumir y agrupar resultados".
+--Consulta 4 — Productos por encima/por debajo del promedio
 
 ;WITH conteo AS(
 	SELECT
 	id_producto, 
-	SUM(cantidad) AS cantidad_vendidos
+	SUM(precio_unitario*cantidad) AS cantidad_vendidos
 	FROM ventas
 	GROUP BY id_producto
 )
@@ -48,17 +45,16 @@ SELECT
 id_producto, 
 cantidad_vendidos,
 CASE
-	WHEN cantidad_vendidos > (SELECT AVG(cantidad_vendidos) FROM conteo) THEN 'por encima'
-	ELSE 'por debajo'
+	WHEN cantidad_vendidos > (SELECT AVG(cantidad_vendidos) FROM conteo) THEN 'Por encima'
+	ELSE 'Por debajo'
 END AS Estado
 FROM conteo
 ORDER BY id_producto;
 
 
 --Bloque de cierre Al final del archivo agregá un bloque de comentarios 
--- con 3 hallazgos concretos que encontraste al revisar los resultados. Por ejemplo: "El producto 1 concentra el 40% de la facturación del trimestre."
 
 --Hallazgos: 
---1. El producto 2 concentra la mayor parte de las ventas
+--1. El producto 1 supera a los demás productos según su facturación mensual.
 --2. Los clientes 1 y 5 son los que más han gastado, ambos superando los 2.000 pesos en productos.
---3. Se debería enfocar en promocionar productos con mayor valor que están bajo el promedio de ventas, como el producto 1. 
+--3. Aunque producto 2 tiene la mayor cantidad de unidades vendidas, está por debajo la facturación promedio. 
